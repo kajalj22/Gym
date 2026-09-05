@@ -1052,6 +1052,11 @@ Full body: {json.dumps(exc.body, indent=4)}
             timeout_worker_healthcheck=global_config_dict.get(UVICORN_TIMEOUT_WORKER_HEALTHCHECK, 30),
             # Ensure server keepalive > client keepalive
             timeout_keep_alive=30,
+            # Default uvicorn/asyncio backlog (2048) is well below the per-host connection
+            # limits Gym is tuned for under NeMo-RL rollout fanout (e.g. 16384 in
+            # nemo_rl/environments/nemo_gym.py), so the kernel accept queue can silently
+            # drop connections under high concurrency before any app-level limit engages.
+            backlog=16384,
             # Parse HTTP with httptools instead of pure-Python h11.
             # Explicit selection prevents Uvicorn from silently falling back to h11.
             # A missing or incompatible httptools wheel now fails during startup.

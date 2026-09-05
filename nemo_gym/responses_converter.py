@@ -748,7 +748,6 @@ class ResponsesConverter(BaseModel):
         choice = chat_completion.choices[0]
 
         response_output = self.postprocess_chat_response(choice)
-        response_output_dicts = [item.model_dump() for item in response_output]
 
         usage = None
         if chat_completion.usage:
@@ -795,7 +794,7 @@ class ResponsesConverter(BaseModel):
             created_at=chat_completion.created,
             model=responses_create_params.model,
             object="response",
-            output=response_output_dicts,
+            output=response_output,
             tool_choice=responses_create_params.tool_choice
             if responses_create_params.tool_choice is not None
             else "auto",

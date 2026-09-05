@@ -7,6 +7,10 @@ genrm_model:
       uses_reasoning_parser: true  # GenRM outputs structured JSON, not reasoning
       supports_principle_role: true
 
+      # Stateless HTTP dispatch to the vLLM engine -- safe to run multiple FastAPI workers.
+      # (Unlike genrm_compare_resources_server, this server holds no in-process cohort state.)
+      num_workers: 4
+
       hf_home: null
 
       vllm_serve_env_vars:
