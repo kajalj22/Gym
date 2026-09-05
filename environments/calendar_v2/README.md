@@ -11,26 +11,24 @@ The assistant must:
 The conversations in the dataset are generated using personas from the [nvidia/Nemotron-Personas-USA dataset](https://huggingface.co/datasets/nvidia/Nemotron-Personas-USA) on Hugging Face.
 
 # Example usage
+Create an `env.yaml` file in the Gym root directory to specifying `policy_base_url`, `policy_model_name`, and `policy_api_key`. See [documentation](https://docs.nvidia.com/nemo/gym/reference/configuration#local-configuration-envyaml) for details.
 
 ## Running servers
 The following is an example command for running this resources server along with an OpenAI model:
 
 ```bash
-config_paths="responses_api_models/openai_model/configs/openai_model.yaml, \
-environments/calendar_v2/config.yaml"
-ng_run "+config_paths=[$config_paths]"
+gym env start --environment calendar_v2 --model-type openai_model
 ```
 
 ## Collecting rollouts
-Create an `env.yaml` file in the Gym root directory to specifying `policy_base_url`, `policy_model_name`, and `policy_api_key`. See [documentation](https://docs.nvidia.com/nemo/gym/reference/configuration#local-configuration-envyaml) for details.
 Rollouts can be collected using the example dataset as follows:
 
 ```bash
-ng_collect_rollouts \
-    +agent_name=calendar_simple_agent \
-    +input_jsonl_fpath=data/example.jsonl \
-    +output_jsonl_fpath=environments/calendar_v2/data/example.jsonl \
-    +limit=5
+gym eval run --no-serve \
+    --agent calendar_simple_agent \
+    --input environments/calendar_v2/data/example.jsonl \
+    --output results/example_rollouts.jsonl \
+    --limit 5
 ```
 
 The input JSONL file should contain entries with:

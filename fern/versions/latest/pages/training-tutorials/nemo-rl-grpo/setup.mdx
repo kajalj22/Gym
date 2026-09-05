@@ -22,7 +22,7 @@ Now that you understand the configuration parameters for GRPO training, it's tim
 
 </Info>
 
-<NavButton href="/training-tutorials/nemo-rl-grpo/nemo-rl-configuration" label="Previous: NeMo RL Configuration" direction="prev" />
+<NavButton href="/tutorials/training-tutorials/nemo-rl-grpo/nemo-rl-configuration" label="Previous: NeMo RL Configuration" direction="prev" />
 
 ---
 
@@ -111,9 +111,13 @@ CONTAINER_IMAGE_PATH=./$CONTAINER_IMAGE_PATH
 
 </Tip>
 
+<Note>
+This tutorial trains [Nemotron Nano 9B v2](https://huggingface.co/nvidia/NVIDIA-Nemotron-Nano-9B-v2), not Nemotron 3 Ultra. Use the Nano NGC container from the [RL Framework Compatibility](/reference/rl-framework-compatibility) table (v0.1.1 / Nemotron 3 Nano row). For Nemotron 3 Ultra training with NeMo Gym v0.3.0, build the `ultra-v3` Dockerfile instead.
+</Note>
+
 ```bash
-# Use the official NeMo RL container from NGC
-# See: https://catalog.ngc.nvidia.com/orgs/nvidia/containers/nemo-rl
+# Nano recipe container — see RL Framework Compatibility table
+# https://catalog.ngc.nvidia.com/orgs/nvidia/containers/nemo-rl
 CONTAINER_IMAGE_PATH=nvcr.io/nvidia/nemo-rl:v0.4.0.nemotron_3_nano
 
 NUM_ACTOR_NODES=1
@@ -205,14 +209,14 @@ uv run python -c "import ray; ray.shutdown()"
 
 **Estimated time**: ~5 minutes
 
-The Workplace Assistant dataset must be downloaded from HuggingFace and prepared for training. This runs `ng_prepare_data` to download and validate the dataset, and to add an `agent_ref` property to each example that tells NeMo Gym which agent server should handle that example.
+The Workplace Assistant dataset must be downloaded from HuggingFace and prepared for training. This runs `gym dataset collate` to download and validate the dataset, and to add an `agent_ref` property to each example that tells NeMo Gym which agent server should handle that example.
 
 Clone and setup the Gym Python environment:
 
 ```bash
 # Setup Gym local venv
 cd 3rdparty/Gym-workspace/Gym
-uv venv --python 3.12 --allow-existing .venv
+uv venv --python 3.13.14 --allow-existing .venv
 source .venv/bin/activate
 uv sync --active --extra dev
 ```
@@ -226,13 +230,12 @@ echo "hf_token: {your HF token}" >> env.yaml
 Prepare the data:
 
 ```bash
-config_paths="responses_api_models/vllm_model/configs/vllm_model_for_training.yaml,\
-resources_servers/workplace_assistant/configs/workplace_assistant.yaml"
-
-ng_prepare_data "+config_paths=[${config_paths}]" \
-    +output_dirpath=data/workplace_assistant \
-    +mode=train_preparation \
-    +should_download=true \
+gym dataset collate \
+    --config responses_api_models/vllm_model/configs/vllm_model_for_training.yaml \
+    --resources-server workplace_assistant \
+    --output-dir data/workplace_assistant \
+    --mode train_preparation \
+    --download \
     +data_source=huggingface
 ```
 
@@ -251,4 +254,4 @@ cd ../../..
 
 With your environment set up and data prepared, run your first training session:
 
-<NavButton href="/training-tutorials/nemo-rl-grpo/single-node-training" label="Continue to Single Node Training" direction="next" />
+<NavButton href="/tutorials/training-tutorials/nemo-rl-grpo/single-node-training" label="Continue to Single Node Training" direction="next" />

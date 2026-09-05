@@ -25,11 +25,11 @@ H5PY_FILE = "/data/test_data.h5"; here it is injected from config.
 """
 
 import json
+import os
 import re
 import subprocess
 import sys
-
-import ray
+import tempfile
 
 
 # Helper functions ported verbatim from nemo-skills scicode_utils.eval_prefix. H5PY_FILE and the
@@ -216,16 +216,31 @@ def build_test_program(full_generation: str, h5_path: str, step_number: str, san
     return program
 
 
-# Kept as a plain function (then wrapped with ray.remote below) so the executor logic can be
-# unit-tested directly without launching Ray.
 def run_substep(program: str, timeout_secs: float) -> dict:
     """Run one sub-step program in a subprocess. Exit code 0 == all assertions passed."""
+    # Passing a large generated solution through `python -c <program>` is
+    # bounded by Linux's execve argument-size limit (ARG_MAX). SciCode's
+    # accumulated solutions can exceed that late in a run. A temporary source
+    # file has no such limit and preserves the per-substep subprocess isolation.
+    source_path = None
     try:
-        proc = subprocess.run([sys.executable, "-c", program], capture_output=True, timeout=timeout_secs)
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            suffix=".py",
+            prefix="scicode-substep-",
+            delete=False,
+        ) as source:
+            source.write(program)
+            source_path = source.name
+        proc = subprocess.run([sys.executable, source_path], capture_output=True, timeout=timeout_secs)
     except subprocess.TimeoutExpired:
         return {"passed": False, "error": "timeout"}
+    finally:
+        if source_path is not None:
+            try:
+                os.unlink(source_path)
+            except FileNotFoundError:
+                pass
     passed = proc.returncode == 0
     return {"passed": passed, "error": "" if passed else proc.stderr.decode("utf-8", errors="replace")[-_STDERR_TAIL:]}
-
-
-run_substep_remote = ray.remote(run_substep)

@@ -114,7 +114,7 @@ same one (creation order is `[GPU0×A, GPU1×A, ...]`; dispatch order becomes
 
 uv ships python-build-standalone binaries whose absolute paths differ across
 containers. `segale_actor.py` copies the venv's Python root to a
-shared-FS path at `LONGMT_EVAL_PY_CACHE` (default `/opt/Gym/.cache/longmt-python`)
+shared-FS path at `LONGMT_EVAL_PY_CACHE` (default `<Gym cache directory>/longmt-python`)
 so remote Ray workers can resolve a stable `py_executable` at runtime. Set
 `LONGMT_EVAL_PY_CACHE` to a Lustre path when running across nodes.
 
@@ -145,9 +145,9 @@ and output rows.
 ### Reward profiling from pre-baked rollouts (no GPU, no model server)
 
 ```bash
-ng_reward_profile \
-    +materialized_inputs_jsonl_fpath=resources_servers/longmt_eval/data/example_rollouts_materialized_inputs.jsonl \
-    +rollouts_jsonl_fpath=resources_servers/longmt_eval/data/example_rollouts.jsonl
+gym eval profile \
+    --inputs resources_servers/longmt_eval/data/example_rollouts_materialized_inputs.jsonl \
+    --rollouts resources_servers/longmt_eval/data/example_rollouts.jsonl
 ```
 
 Outputs `example_rollouts_reward_profiling.jsonl` (per-task stats) and
@@ -158,20 +158,22 @@ rollouts file.
 
 ```bash
 # Start servers (smoke-test mode — no GPU needed for the verifier)
-ng_run "+config_paths=[resources_servers/longmt_eval/configs/longmt_eval.yaml,responses_api_models/vllm_model/configs/vllm_model.yaml]" \
-    "++longmt_eval.resources_servers.longmt_eval.compute_segale=false" &
+gym env start \
+    --resources-server longmt_eval \
+    --model-type vllm_model & \
+    ++longmt_eval.resources_servers.longmt_eval.compute_segale=false
 
 # Collect rollouts — also writes results/longmt_eval_rollouts_materialized_inputs.jsonl
-ng_collect_rollouts \
-    +agent_name=longmt_eval_simple_agent \
-    +input_jsonl_fpath=resources_servers/longmt_eval/data/example.jsonl \
-    +output_jsonl_fpath=results/longmt_eval_rollouts.jsonl \
-    +num_repeats=1
+gym eval run --no-serve \
+    --agent longmt_eval_simple_agent \
+    --input resources_servers/longmt_eval/data/example.jsonl \
+    --output results/longmt_eval_rollouts.jsonl \
+    --num-repeats 1
 
 # Profile rewards from the collected rollouts
-ng_reward_profile \
-    +materialized_inputs_jsonl_fpath=results/longmt_eval_rollouts_materialized_inputs.jsonl \
-    +rollouts_jsonl_fpath=results/longmt_eval_rollouts.jsonl
+gym eval profile \
+    --inputs results/longmt_eval_rollouts_materialized_inputs.jsonl \
+    --rollouts results/longmt_eval_rollouts.jsonl
 ```
 
 For a full SLURM run with SEGALE enabled on WMT24++ see
@@ -194,11 +196,12 @@ For a full SLURM run with SEGALE enabled on WMT24++ see
 
 | Variable | Purpose |
 |----------|---------|
-| `LASER_HOME` | Path to the LASER2 model weights (required for SEGALE actors) |
+| `LASER_HOME` | Path to the LASER2 model weights; defaults to `<Gym cache directory>/longmt-laser` |
 | `HF_HOME` / `HF_HUB_CACHE` | HuggingFace cache; COMETKiwi checkpoint resolved here |
 | `HF_HUB_OFFLINE` | Set to `1` to prevent any HF Hub network calls |
-| `ERSATZ` | Path to the ersatz segmenter model weights |
-| `LONGMT_EVAL_PY_CACHE` | Shared-FS path for the mirrored uv Python root used by Ray workers |
+| `ERSATZ` | Path to the ersatz segmenter model weights; defaults to `<Gym cache directory>/longmt-ersatz` |
+| `LONGMT_COMET_CACHE` | Path to downloaded COMET checkpoints; defaults to `<Gym cache directory>/longmt-comet` |
+| `LONGMT_EVAL_PY_CACHE` | Shared-FS path for the mirrored uv Python root; defaults to `<Gym cache directory>/longmt-python` |
 
 ## Licensing
 

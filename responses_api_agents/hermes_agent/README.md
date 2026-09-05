@@ -13,42 +13,22 @@ policy_model_name: gpt-4o
 ## Launch nemo gym servers
 
 ```bash
-ng_run "+config_paths=[resources_servers/math_with_judge/configs/math_with_judge_hermes_agent.yaml,responses_api_models/openai_model/configs/openai_model.yaml]"
+gym env start \
+    --config environments/hermes_math/config.yaml \
+    --model-type openai_model
 ```
 
 ## Collect rollouts
 
 ```bash
-ng_collect_rollouts \
-    +agent_name=math_with_judge_hermes_agent \
-    +input_jsonl_fpath=resources_servers/math_with_judge/data/example.jsonl \
-    +output_jsonl_fpath=hermes_agent_rollout.jsonl \
-    +limit=1
+gym eval run --no-serve \
+    --agent hermes_math_agent \
+    --input environments/hermes_math/data/example.jsonl \
+    --output hermes_agent_rollout.jsonl \
+    --limit 1
 ```
 
-5 example math rollouts are at `responses_api_agents/hermes_agent/data/` with statistics:
-
-```
-Collecting rollouts: 100%|█████████████████████████████████████| 5/5 [00:24<00:00,  4.87s/it]
-Sorting results to ensure consistent ordering
-Computing aggregate metrics
-INFO:     127.0.0.1:9672 - "GET /global_config_dict_yaml HTTP/1.1" 200 OK
-
-Key metrics for math_with_judge_hermes_agent:
-{
-    "mean/reward": 0.2,
-    "mean/turns_used": 1.6,
-    "mean/finished_naturally": 1.0,
-    "mean/library_reward": 0.2,
-    "mean/input_tokens": 0.0,
-    "mean/output_tokens": 0.0,
-    "mean/total_tokens": 0.0
-}
-Finished rollout collection! View results at:
-Fully materialized inputs: responses_api_agents/hermes_agent/data/example_math_rollouts_materialized_inputs.jsonl
-Rollouts: responses_api_agents/hermes_agent/data/example_math_rollouts.jsonl
-Aggregate metrics: responses_api_agents/hermes_agent/data/example_math_rollouts_aggregate_metrics.json
-```
+Example math rollouts are in `environments/hermes_math/data/example_rollouts.jsonl`.
 
 Example training reward for small multi environment test is shown [here](https://github.com/NVIDIA-NeMo/Gym/pull/1033#issuecomment-4399509664).
 
@@ -79,6 +59,7 @@ hermes_agent:
       model_server:
         type: responses_api_models
         name: policy_model
+      model: served-model-name
       enabled_toolsets: [terminal, file, code_execution]
       max_turns: 30
       concurrency: 32
@@ -91,6 +72,7 @@ hermes_agent:
 |-------|---------|-------------|
 | `enabled_toolsets` | `null` (all) | forwarded to `AIAgent(enabled_toolsets=...)` |
 | `disabled_toolsets` | `null` | forwarded to `AIAgent(disabled_toolsets=...)` |
+| `model` | `null` | served model id; defaults to `model_server.name` for backward compatibility |
 | `max_turns` | `30` | maps to `AIAgent.max_iterations` |
 | `concurrency` | `32` | max simultaneous `run()` calls |
 | `temperature` | `1.0` | sampling temperature passed to `AIAgent` |
